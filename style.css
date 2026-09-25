@@ -2,3 +2,53 @@ html, body {
   margin: 0;
   padding: 0;
 }
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background-color: #0d0b14;
+  background-image: radial-gradient(circle at 50% 25%, #1b1630 0%, #0d0b14 70%);
+  color: #f6d696;
+  font-family: "Courier New", monospace;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: #f6d696;
+  text-shadow: 2px 2px 0 #7a4a26, 4px 4px 0 #2a1c3a;
+}
+
+h1 span {
+  color: #e85644;
+}
+
+/* Hard-edged upscale: keeps the retro blocks from being re-blurred by CSS. */
+canvas {
+  display: block;
+  image-rendering: pixelated;
+  border: 4px solid #241b3a;
+  box-shadow: 0 0 0 2px #5c4a7a, 0 12px 40px #000000aa;
+}
+
+/* CRT scanlines, one per 4px pixel block. Pure CSS — no per-frame cost. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0)   0px,
+    rgba(0, 0, 0, 0)   2px,
+    rgba(0, 0, 0, 0.28) 2px,
+    rgba(0, 0, 0, 0.28) 4px
+  );
+}
