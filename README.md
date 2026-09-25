@@ -1,5 +1,7 @@
 # Angry Birds — Stage 2
 
+<a href="https://darsheelsahu-2008.github.io/angrybird-stage-2/"><img src="assets/hero.svg" width="820" alt="A bird pulled back on a slingshot arcs over the ground and knocks a pig out of a wooden tower. Click to play."></a>
+
 A playable Angry Birds clone in the browser. Drag the slingshot, launch the birds,
 knock the pigs out of their towers. 99 levels, no build step, no dependencies to
 install.
