@@ -1,8 +1,15 @@
 class Log extends BaseClass {
     constructor(x, y, height, angle) {
-    
-    super (x,y,20,height,angle)
-    this.image= loadImage("sprites/wood2.png")
-    Matter.Body.setAngle(this.body,angle)
-  }
+      // Logs never break — they are the bulldozer. Dense, so they shove crates.
+      super (x,y,20,height,angle, {
+        kind: 'log',
+        hp: 1e9,
+        density: 0.0026,
+        friction: 0.9,
+        restitution: 0.1
+      })
+      this.image = SPRITES.wood2 || loadImage("sprites/wood2.png")
+      Matter.Body.setAngle(this.body,angle)
+    }
+    takeDamage() { return false; }   // indestructible
   }

@@ -2,8 +2,6 @@
 <html>
 <head>
     <script src="vendor/p5.min.js"></script>
-    <script src="vendor/p5.dom.min.js"></script>
-    <script src="vendor/p5.sound.min.js"></script>
     <script src="vendor/matter.js"></script>
     <script src="js/BaseClass.js"></script>
     <script src="js/Ground.js"></script>
@@ -11,12 +9,51 @@
     <script src="js/Pig.js"></script>
     <script src="js/Log.js"></script>
     <script src="js/Bird.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/Game.js"></script>
+    <script src="js/UI.js"></script>
     
     <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Angry Birds &mdash; Stage 2</title>
 </head>
 <body>
   <h1>Angry <span>Birds</span> &mdash; Stage 2</h1>
+
+  <div id="hud" class="hud">
+    <span class="tag">LVL <b id="hud-level">1/99</b></span>
+    <span class="tag">SCORE <b id="hud-score">0</b></span>
+    <span class="tag">BIRDS <b id="hud-birds"></b></span>
+  </div>
+
+  <div id="stage"></div>
+  <div id="progress" class="progress"></div>
+
+  <div id="title" class="screen">
+    <div class="panel">
+      <h2>ANGRY BIRDS</h2>
+      <p class="hint">Drag the bird back. Let go to fire.<br>
+         <b>SPACE</b> = mid-air boost &middot; <b>R</b> = retry &middot; <b>ESC</b> = levels</p>
+      <div class="btns">
+        <button data-act="play">PLAY</button>
+        <button data-act="select">99 LEVELS</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="select" class="screen">
+    <div class="panel wide">
+      <h2>SELECT LEVEL</h2>
+      <div id="grid" class="grid"></div>
+      <div class="btns"><button data-act="title">◀ BACK</button></div>
+    </div>
+  </div>
+
+  <div id="overlay" class="screen">
+    <div class="panel" id="panel"></div>
+  </div>
+
   <script src="js/sketch.js"></script>
 </body>
 </html>

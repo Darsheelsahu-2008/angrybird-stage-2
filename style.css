@@ -52,3 +52,109 @@ body::after {
     rgba(0, 0, 0, 0.28) 4px
   );
 }
+
+/* ---------- game shell ---------- */
+.hud {
+  display: none;
+  gap: 10px;
+  align-items: center;
+}
+.hud.on { display: flex; }
+.tag {
+  background: #1b1430;
+  border: 2px solid #5c4a7a;
+  box-shadow: 0 3px 0 #0a0714;
+  padding: 4px 10px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #8f7fb8;
+}
+.tag b { color: #f6d696; margin-left: 6px; }
+#hud-birds { color: #e85644; letter-spacing: 3px; }
+
+.progress {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #6a5c8a;
+  min-height: 14px;
+}
+
+/* Full-screen dim + panels for title / level select / win / lose. */
+.screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+  background: rgba(9, 7, 16, 0.86);
+}
+.screen.on { display: flex; }
+#stage.dim { filter: brightness(0.45) saturate(0.7); }
+
+.panel {
+  background: #150f28;
+  border: 4px solid #5c4a7a;
+  box-shadow: 0 0 0 3px #0a0714, 0 18px 50px #000000cc;
+  padding: 26px 30px;
+  text-align: center;
+  max-width: 90vw;
+}
+.panel.wide { width: min(760px, 92vw); }
+.panel h2 {
+  margin: 0 0 14px;
+  font-size: 26px;
+  letter-spacing: 5px;
+  color: #f6d696;
+  text-shadow: 2px 2px 0 #7a4a26, 4px 4px 0 #0a0714;
+}
+.panel.win h2 { color: #8ce84a; }
+.panel.fail h2 { color: #e85644; }
+.panel-body { font-size: 13px; line-height: 1.9; margin-bottom: 16px; }
+.panel-body .dimtxt { color: #8f7fb8; }
+.stars { font-size: 30px; letter-spacing: 6px; color: #f6d696; line-height: 1.4; }
+.hint { font-size: 12px; line-height: 2; color: #8f7fb8; letter-spacing: 1px; }
+.hint b { color: #f6d696; }
+
+.btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+button {
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #f6d696;
+  background: #241b3a;
+  border: 3px solid #5c4a7a;
+  box-shadow: 0 4px 0 #0a0714;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+button:hover { background: #33264f; border-color: #8ce84a; color: #fff; }
+button:active { transform: translateY(3px); box-shadow: 0 1px 0 #0a0714; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 8px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 6px;
+}
+.lvl {
+  position: relative;
+  padding: 10px 0 14px;
+  font-size: 13px;
+}
+.lvl i {
+  position: absolute;
+  left: 0; right: 0; bottom: 2px;
+  font-style: normal;
+  font-size: 8px;
+  color: #f6d696;
+  letter-spacing: 0;
+}
+.lvl.done { border-color: #8ce84a; }
+.lvl.locked {
+  opacity: 0.32;
+  cursor: not-allowed;
+  color: #6a5c8a;
+}

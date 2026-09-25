@@ -1,6 +1,3 @@
-const Engine = Matter.Engine;
-const World= Matter.World;
-const Bodies = Matter.Bodies;
 
 // Retro pass: render the scene at 1/PIXELS scale, then blow it back up with
 // nearest-neighbour so every art pixel becomes a chunky PIXELS x PIXELS block.
@@ -16,67 +13,58 @@ const PALETTE = [
 ];
 
 var engine, world;
-var box1, pig1;
-
+var ground;              // the one permanent body; see Game.clearWorld
 var backgroundImg;
 
 function preload() {
     backgroundImg = loadImage("sprites/bg.png");
+    SPRITES.base      = loadImage("sprites/base.png");
+    SPRITES.bird      = loadImage("sprites/bird.png");
+    SPRITES.wood1     = loadImage("sprites/wood1.png");
+    SPRITES.wood2     = loadImage("sprites/wood2.png");
+    SPRITES.enemy     = loadImage("sprites/enemy.png");
+    SPRITES.enemy_big = loadImage("sprites/enemy_big.png");
+    SPRITES.stone     = loadImage("sprites/stone.png");
 }
 
 function setup(){
     var canvas = createCanvas(1200,400);
+    canvas.parent('stage');
     pixelDensity(1);
     noSmooth();
     engine = Engine.create();
     world = engine.world;
 
-    
-    ground = new Ground(600,height,1200,20)
+    // The permanent ground. Everything else is torn down and rebuilt per level.
+    ground = new Ground(600,height,1200,20);
+    ground.permanent = true;
 
-    box1 = new Box(700,320,70,70);
-    box2 = new Box(920,320,70,70);
-    pig1 = new Pig(810, 350);
-    log1 = new Log(810,260,300, PI/2);
+    Game.init();
+    Game.add(ground);       // after init: clearWorld keeps permanents in the list
+    UI.show('title');
+}
 
-    box3 = new Box(700,240,70,70);
-    box4 = new Box(920,240,70,70);
-    pig3 = new Pig(810, 220);
-
-    log3 =  new Log(810,180,300, PI/2);
-
-    box5 = new Box(810,160,70,70);
-    log4 = new Log(760,120,150, PI/7);
-    log5 = new Log(870,120,150, -PI/7);
-
-    bird = new Bird(100,100);
-
+// ---- input ------------------------------------------------------------------
+function mousePressed()  { Game.pointerDown(); }
+function mouseDragged()  { Game.pointerDrag(); }
+function mouseReleased() { Game.pointerUp(); }
+function touchStarted()  { followTouch(); Game.pointerDown(); return false; }
+function touchMoved()    { followTouch(); Game.pointerDrag();  return false; }
+function touchEnded()    { followTouch(); Game.pointerUp();   return false; }
+// The sling reads mouseX/mouseY, so a touch has to stand in for the mouse.
+function followTouch() {
+    if (typeof touches !== 'undefined' && touches.length) {
+        mouseX = touches[0].x;
+        mouseY = touches[0].y;
+    }
 }
 
 function draw(){
     push();
     scale(1/PIXELS);
     background(backgroundImg);
-    Engine.update(engine);
-    console.log(box2.body.position.x);
-    console.log(box2.body.position.y);
-    console.log(box2.body.angle);
-    box1.display();
-    box2.display();
-    ground.display();
-    pig1.display();
-    log1.display();
-
-    box3.display();
-    box4.display();
-    pig3.display();
-    log3.display();
-
-    box5.display();
-    log4.display();
-    log5.display();
-
-    bird.display();
+    Game.step();
+    Game.render();
     pop();
     retro();
 }
@@ -109,3 +97,56 @@ function retro(){
     noSmooth();
     image(small, 0, 0, width, height);
 }
+
+/* ORIGINAL (preserved, not deleted — disabled by comment): stage-2 had a single
+   hardcoded scene with no input, no scoring and no levels. Kept for reference.
+
+function setup(){
+    var canvas = createCanvas(1200,400);
+    engine = Engine.create();
+    world = engine.world;
+
+    ground = new Ground(600,height,1200,20)
+
+    box1 = new Box(700,320,70,70);
+    box2 = new Box(920,320,70,70);
+    pig1 = new Pig(810, 350);
+    log1 = new Log(810,260,300, PI/2);
+
+    box3 = new Box(700,240,70,70);
+    box4 = new Box(920,240,70,70);
+    pig3 = new Pig(810, 220);
+
+    log3 =  new Log(810,180,300, PI/2);
+
+    box5 = new Box(810,160,70,70);
+    log4 = new Log(760,120,150, PI/7);
+    log5 = new Log(870,120,150, -PI/7);
+
+    bird = new Bird(100,100);
+}
+
+function draw(){
+    background(backgroundImg);
+    Engine.update(engine);
+    console.log(box2.body.position.x);
+    console.log(box2.body.position.y);
+    console.log(box2.body.angle);
+    box1.display();
+    box2.display();
+    ground.display();
+    pig1.display();
+    log1.display();
+
+    box3.display();
+    box4.display();
+    pig3.display();
+    log3.display();
+
+    box5.display();
+    log4.display();
+    log5.display();
+
+    bird.display();
+}
+*/
