@@ -6,7 +6,7 @@ class Pig extends BaseClass {
         kind: 'pig',
         hp: big ? 170 : 100,
         density: 0.0014,
-        score: big ? 8000 : 5000,
+        score: 5000,            // the real game pays 5,000 for any pig
         friction: 0.9,
         restitution: 0.35
       })

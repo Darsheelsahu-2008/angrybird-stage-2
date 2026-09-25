@@ -5,6 +5,7 @@ class Log extends BaseClass {
         kind: 'log',
         hp: 1e9,
         density: 0.0026,
+        score: 500,             // a plank, not a block: half a block's value
         friction: 0.9,
         restitution: 0.1
       })

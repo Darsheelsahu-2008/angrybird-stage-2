@@ -8,9 +8,13 @@
 const MAX_LEVELS = 99;
 
 // Material toughness. Also drives density, so stone hits back harder.
+// Glass < wood < stone, the real game's order. Glass is the weak one: barely
+// any mass, and it shatters from a nudge. Its higher ARMOUR number means it
+// takes *more* damage per impact than the others.
 const MATERIALS = {
+    glass: { hp: 16,  density: 0.0006, score: 1000, colour: [176, 226, 242] },
     wood:  { hp: 42,  density: 0.0012, score: 1000, colour: [180, 118,  62] },
-    stone: { hp: 120, density: 0.0030, score: 2000, colour: [140, 140, 150] }
+    stone: { hp: 120, density: 0.0030, score: 1000, colour: [140, 140, 150] }
 };
 
 // mulberry32 — small, fast, deterministic. Same seed => same level, forever.
@@ -46,13 +50,18 @@ function levelSpec(n) {
     for (var i = 0; i < towers; i++) {
         var tx = startX + i * spacing;
         var rows = Math.max(2, Math.min(4, 2 + Math.floor(rnd() * 2 + t * 2)));
+        // A glass tower: rarer than stone, and only in the back half, so the
+        // third material shows up late the way it does in the real game.
         var stoneRow = t > 0.35 && rnd() < 0.4;
+        var glassTower = t > 0.45 && !stoneRow && rnd() < 0.3;
         var topY = spec.ground;
         var pigsBefore = spec.pigs.length;
 
         for (var r = 0; r < rows; r++) {
             var y = spec.ground - 35 - r * 70;
-            var mat = (stoneRow && r === 0) ? 'stone' : (t > 0.5 && rnd() < 0.25 ? 'stone' : 'wood');
+            var mat = glassTower ? 'glass'
+                    : (stoneRow && r === 0) ? 'stone'
+                    : (t > 0.5 && rnd() < 0.25) ? 'stone' : 'wood';
             spec.blocks.push({ x: tx,      y: y, w: 70, h: 70, m: mat });
             spec.blocks.push({ x: tx + 140, y: y, w: 70, h: 70, m: mat });
             // Pig in the gap: has to be knocked loose by collapsing the crate.
@@ -104,7 +113,8 @@ function levelSpec(n) {
     spec.birds = Math.max(Math.min(5, 2 + Math.round(t * 3) + (n % 5 === 0 ? 1 : 0)),
                           Math.min(5, Math.ceil(spec.pigs.length / 1.5) + 1));
 
-    spec.par = spec.pigs.length * 5000 + spec.blocks.length * 600 + spec.logs.length * 400;
+    // par = everything on the field at full value, so 3 stars means nothing was wasted
+    spec.par = spec.pigs.length * 5000 + spec.blocks.length * 1000 + spec.logs.length * 500;
     return spec;
 }
 

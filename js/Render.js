@@ -17,20 +17,30 @@ const Render = {
         for (const e of Game.entities) e.display();
     },
 
+    // Where the bands are pinched right now: the bird while it is loaded or
+    // held, otherwise the empty pouch resting at the fork. The bands are elastic
+    // and let go at launch, so a bird in flight has nothing attached to it.
+    bandTarget() {
+        const b = Game.bird;
+        if (!b || !b.alive) return SLING.pouch;
+        if (b.mode === 'drag') return { x: Game.dragX, y: Game.dragY };
+        if (b.mode === 'sling') return b.body.position;
+        return SLING.pouch;
+    },
+
     sling(img) {
         image(img, SLING.x - 28, SLING.y - 44);
-        const b = Game.bird;
-        if (!b || !b.alive) return;
-        // The two bands, back pocket to bird. While held, the drag point is
-        // authoritative: entities draw after the sling, so the body would still
-        // be one frame behind.
         stroke(70, 44, 30);
         strokeWeight(4);
         noFill();
-        const p = b.mode === 'drag' ? { x: Game.dragX, y: Game.dragY } : b.body.position;
-        line(SLING.x - 12, SLING.y - 24, p.x, p.y);
-        line(SLING.x + 12, SLING.y - 24, p.x, p.y);
+        const p = this.bandTarget();
+        line(SLING.tipL.x, SLING.tipL.y, p.x, p.y);
+        line(SLING.tipR.x, SLING.tipR.y, p.x, p.y);
         noStroke();
+        fill(96, 60, 38);                       // leather pouch
+        rect(p.x - 7, p.y - 3, 14, 7);
+        fill(140, 92, 58);
+        rect(p.x - 7, p.y - 3, 14, 2);
     },
 
     // ---- feedback ------------------------------------------------------------

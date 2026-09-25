@@ -37,6 +37,9 @@ function setup() {
         testPigOffTheEdgeCountsAsKilled();
         testWinThenNextLevel();
         testHoldingTheDragDoesNotSpendABird();
+        testBandsReleaseOnLaunch();
+        testGlassIsTheWeakMaterial();
+        testRealScoringValues();
     } catch (err) {
         check('unexpected exception', false, String(err));
     }
@@ -302,6 +305,77 @@ function testHoldingTheDragDoesNotSpendABird() {
     check('release after a hold still fires', Game.bird.mode === 'fly',
           'mode ' + Game.bird.mode);
     Game.loadLevel(1);                            // leave the world tidy
+}
+
+function testBandsReleaseOnLaunch() {
+    // The bands are elastic, not a rope: they pinch the bird while it is loaded
+    // or held, and snap back to the empty pouch the moment it is away.
+    Game.loadLevel(1);
+    const bird = Game.bird;
+    const loaded = Render.bandTarget();
+    check('bands pinch the loaded bird',
+          loaded.x === bird.body.position.x && loaded.y === bird.body.position.y,
+          loaded.x + ',' + loaded.y);
+
+    mouseX = SLING.x; mouseY = SLING.y;
+    Game.pointerDown();
+    mouseX = SLING.x - 50; mouseY = SLING.y + 30;
+    Game.pointerDrag();
+    check('bands follow the held bird',
+          Render.bandTarget().x === Game.dragX, Render.bandTarget().x + ' vs ' + Game.dragX);
+
+    Game.pointerUp();
+    Game.step();                    // the bird needs to actually leave the fork
+    const after = Render.bandTarget();
+    check('bands snap back to the empty pouch on launch',
+          after.x === SLING.pouch.x && after.y === SLING.pouch.y,
+          after.x + ',' + after.y);
+    const bp = bird.body.position;
+    check('a bird in flight has nothing attached to it',
+          Math.abs(bp.x - after.x) > 20 || Math.abs(bp.y - after.y) > 20,
+          'bird ' + bp.x.toFixed(0) + ',' + bp.y.toFixed(0) + ' band ' + after.x + ',' + after.y);
+    Game.loadLevel(1);
+}
+
+function testGlassIsTheWeakMaterial() {
+    // Order from the real game: glass breaks before wood, wood before stone.
+    const m = MATERIALS;
+    check('glass is weaker than wood', m.glass.hp < m.wood.hp,
+          'glass ' + m.glass.hp + ' vs wood ' + m.wood.hp);
+    check('wood is weaker than stone', m.wood.hp < m.stone.hp,
+          'wood ' + m.wood.hp + ' vs stone ' + m.stone.hp);
+    check('glass is the lightest material', m.glass.density < m.wood.density,
+          'glass ' + m.glass.density + ' vs wood ' + m.wood.density);
+
+    const hit = 18;                       // a solid direct hit
+    for (const mat of ['glass', 'wood', 'stone']) {
+        Game.loadLevel(1);
+        const b = new Box(600, 340, 70, 70, mat);
+        Game.add(b);
+        Game.applyDamage(b, hit, { body: { position: { x: 0, y: 0 } } });
+        if (mat === 'glass') check('glass shatters on a solid hit', !b.alive, 'hp ' + b.hp);
+        if (mat === 'wood') check('wood survives what kills glass', b.alive, 'hp ' + b.hp);
+    }
+    // and the late levels actually use it
+    let glassLevels = 0;
+    for (let n = 1; n <= MAX_LEVELS; n++) {
+        if (levelSpec(n).blocks.some(b => b.m === 'glass')) glassLevels++;
+    }
+    check('glass appears in the level mix', glassLevels > 10,
+          glassLevels + ' of ' + MAX_LEVELS + ' levels have glass');
+}
+
+function testRealScoringValues() {
+    // 5,000 a pig, 1,000 a block, 500 a plank, 10,000 a spare bird.
+    Game.loadLevel(1);
+    const pig = Game.entities.find(e => e.kind === 'pig');
+    check('a pig is worth 5,000', pig.score === 5000, 'score ' + pig.score);
+    check('a spare bird is worth 10,000', BIRD_BONUS === 10000, 'bonus ' + BIRD_BONUS);
+    const spec = levelSpec(1);
+    check('par matches the field at full value',
+          spec.par === spec.pigs.length * 5000 + spec.blocks.length * 1000 + spec.logs.length * 500,
+          'par ' + spec.par);
+    Game.loadLevel(1);
 }
 
 // ---- report -----------------------------------------------------------------

@@ -34,8 +34,12 @@ class Canvas:
 
     def set(self, x, y, c):
         x, y = int(x), int(y)          # callers pass float centres/radii freely
-        if 0 <= x < self.w and 0 <= y < self.h and c[3]:
-            self.px[y][x] = c
+        if not (0 <= x < self.w and 0 <= y < self.h) or not c[3]:
+            return
+        a = c[3] / 255.0
+        d = self.px[y][x]
+        self.px[y][x] = (tuple(c) if (a >= 1 or not d[3]) else
+                         tuple(int(c[i] * a + d[i] * (1 - a)) for i in range(3)) + (max(d[3], c[3]),))
 
     def rect(self, x, y, w, h, c):
         for j in range(int(y), int(y + h)):
@@ -221,6 +225,18 @@ def sling():
     return c
 
 
+def glass(size=70):
+    c = Canvas(size, size)
+    c.rect(4, 4, size - 8, size - 8, (168, 224, 240, 95))
+    c.rect(4, 4, size - 8, 4, (226, 248, 253, 190))
+    c.rect(4, size - 8, size - 8, 4, (112, 176, 198, 190))
+    c.rect(4, 4, 4, size - 8, (196, 240, 251, 150))
+    c.rect(size - 8, 4, 4, size - 8, (140, 200, 220, 150))
+    c.line(9, size - 13, size - 15, 11, (255, 255, 255, 150), 2)
+    c.rect(size - 20, 6, 8, 2, (255, 255, 255, 110))    # corner glint
+    return c
+
+
 def background():
     c = Canvas(1200, 400)
     for band, col in enumerate(SKY):                # banded sky, dithered at the seams
@@ -260,6 +276,7 @@ def main():
     wood_block().save("wood1.png")
     log().save("wood2.png")
     stone_block().save("stone.png")
+    glass().save("glass.png")
     base_block().save("base.png")
     ground_tile().save("ground.png")
     sling().save("sling.png")

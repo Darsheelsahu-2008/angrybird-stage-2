@@ -20,11 +20,17 @@ const WORLD = { w: 1200, h: 400, groundTop: 390, killMargin: 90 };
 // 30deg lands at x=1116, which covers every target the generator places
 // (max x=1070). At 0.17 it only reached 809, so the right-hand tower of every
 // late level was literally unhittable.
-const SLING = { x: 165, y: 300, maxPull: 95, power: 0.20 };
+const SLING = {
+    x: 165, y: 300, maxPull: 95, power: 0.20,
+    // The two fork tips the bands are tied to, and where the empty pouch rests.
+    tipL: { x: 153, y: 276 },
+    tipR: { x: 177, y: 276 },
+    pouch: { x: 165, y: 306 }
+};
 const STEP = 1000 / 60;
 const DAMAGE = { minImpact: 5, scale: 26 };
-const ARMOUR = { pig: 1, wood: 0.8, stone: 0.55 };
-const BIRD_BONUS = 2500;
+const ARMOUR = { pig: 1, glass: 1.4, wood: 0.8, stone: 0.55 };
+const BIRD_BONUS = 10000;   // a bird you did not need is worth two pigs
 // Sprite cache. Declared here (not in sketch.js) because the entity classes read
 // it and the self-test page loads the game without the p5 entry point.
 const SPRITES = { base:null, bg:null, bird:null, wood1:null, wood2:null,
@@ -142,6 +148,13 @@ const Game = {
         if (d > SLING.maxPull) { dx = dx / d * SLING.maxPull; dy = dy / d * SLING.maxPull; }
         this.dragX = SLING.x + dx;
         this.dragY = SLING.y + dy;
+        // Move the body here, not in step(). A quick click-drag-release can
+        // finish inside a single frame, and the bird has to launch from the pouch
+        // it was pulled to, not from the fork it never left.
+        if (this.bird) {
+            Matter.Body.setPosition(this.bird.body, { x: this.dragX, y: this.dragY });
+            Matter.Body.setVelocity(this.bird.body, { x: 0, y: 0 });
+        }
     },
     pointerUp() {
         if (!this.dragging) return;
@@ -234,9 +247,8 @@ const Game = {
 
     // ---- per-frame ---------------------------------------------------------
     step() {
-        // A held bird is parked where the pointer is. This used to happen inside
-        // Bird.display(), so the body only moved at draw time and every collision
-        // test that frame ran against the stale position on the sling.
+        // A held bird is static, so the only thing that can knock it out of
+        // place is a collision: put it back on the pointer every step.
         if (this.dragging && this.bird) {
             Matter.Body.setPosition(this.bird.body, { x: this.dragX, y: this.dragY });
             Matter.Body.setVelocity(this.bird.body, { x: 0, y: 0 });
