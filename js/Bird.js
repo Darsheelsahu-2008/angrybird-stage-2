@@ -6,7 +6,11 @@ class Bird extends BaseClass{
       hp: 1e9,                 // the bird is never damaged
       density: 0.0022,
       restitution: 0.45,
-      friction: 0.4
+      friction: 0.4,
+      // No air drag. Matter's default 0.01 bleeds ~1% of the speed per step, and
+      // the trajectory preview integrates without drag — with drag on, the dots
+      // promised a landing ~150px short of the real one, so shots felt random.
+      frictionAir: 0
     });
     this.image = SPRITES.bird || loadImage("sprites/bird.png");
     this.mode = 'sling';      // 'sling' = steered by cursor, 'fly' = free body
@@ -32,14 +36,11 @@ class Bird extends BaseClass{
 
   display()
   {
-    // While being pulled back, the bird sits at the clamped drag point.
-    if (this.mode === 'drag') {
-      this.body.position.x = Game.dragX;
-      this.body.position.y = Game.dragY;
-    }
     // ORIGINAL (preserved, not deleted — disabled by comment): the bird snapped
     // to the cursor in every mode, so a launched bird teleported back to the
-    // mouse and could never fly.
+    // mouse and could never fly. Drawing also moved the body, which meant the
+    // physics body lagged a frame behind the sprite; the drag is now applied in
+    // Game.step() and this method only draws.
     //   this.body.position.x=mouseX;
     //   this.body.position.y=mouseY;
     super.display();

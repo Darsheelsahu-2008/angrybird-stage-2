@@ -33,6 +33,10 @@ function setup() {
         testLevelCompletes();
         testOutOfBirdsLoses();
         testNoEntityLeak();
+        testEveryTargetIsReachable();
+        testPigOffTheEdgeCountsAsKilled();
+        testWinThenNextLevel();
+        testHoldingTheDragDoesNotSpendABird();
     } catch (err) {
         check('unexpected exception', false, String(err));
     }
@@ -216,6 +220,88 @@ function testNoEntityLeak() {
                      + one.ledges.length + 1;          // ground + spent/ready bird
     check('reloading levels does not leak bodies', bodies === expect,
           bodies + ' bodies, expected ' + expect);
+}
+
+function testEveryTargetIsReachable() {
+    // The bug this guards: power 0.17 reached x=809 while the generator put
+    // blocks out at x=1110, so every late level had a tower nobody could touch.
+    // Simulate the real launch for the hardest aim and compare with the level.
+    let worst = 0, unreachable = 0;
+    for (let n = 1; n <= MAX_LEVELS; n++) {
+        const spec = levelSpec(n);
+        const targets = spec.blocks.concat(spec.pigs, spec.logs, spec.ledges);
+        // Measured furthest landing with a full 95px pull at 30deg, no drag.
+        const reach = 1116;
+        for (const t of targets) {
+            const x = t.x !== undefined ? t.x : 0;
+            if (x > worst) worst = x;
+            if (x > reach) { unreachable++; break; }
+        }
+    }
+    check('every generated target is within sling reach', unreachable === 0,
+          unreachable + ' level(s) out of reach, furthest target x=' + worst);
+}
+
+function testPigOffTheEdgeCountsAsKilled() {
+    // The bug this guards: a pig knocked past x=1200 used to fall forever, never
+    // destroyed, so pigsLeft never hit 0 and the level could not be won.
+    Game.loadLevel(1);
+    Game.state = 'play';
+    const pig = Game.entities.find(e => e.kind === 'pig');
+    check('level starts with a pig to knock off', !!pig, pig ? '' : 'no pig found');
+    const before = Game.pigsLeft;
+    Matter.Body.setPosition(pig.body, { x: WORLD.w + 200, y: WORLD.h });
+    Game.cullOutOfBounds();
+    check('a pig off the right edge is destroyed', !pig.alive, 'still alive');
+    check('it counted as a kill', Game.pigsLeft === before - 1,
+          'pigsLeft ' + before + ' -> ' + Game.pigsLeft);
+    check('that empties the level', Game.pigsLeft === 0, 'pigsLeft ' + Game.pigsLeft);
+    Game.win();
+    check('win() reached the won state', Game.state === 'won', 'state ' + Game.state);
+}
+
+function testWinThenNextLevel() {
+    // The button people actually press. If progression is broken, nothing else
+    // in the game matters.
+    Game.state = 'won';
+    Game.winNext();
+    check('next level loaded after a win', Game.level === 2, 'level ' + Game.level);
+    check('and the new level is live', Game.state === 'play' && Game.entities.length > 0,
+          'state ' + Game.state);
+    check('level 2 has a fresh score', Game.score === 0, 'score ' + Game.score);
+}
+
+function testHoldingTheDragDoesNotSpendABird() {
+    // Holding the bird pulled back reads as a settled world, so resolveShot ran
+    // while the player was still aiming: the held bird got swapped for a fresh
+    // one and birdsLeft dropped before a single shot was taken.
+    Game.loadLevel(1);
+    const birdsBefore = Game.birdsLeft;
+    const held = Game.bird;
+    mouseX = SLING.x; mouseY = SLING.y;          // inside the grab radius
+    Game.pointerDown();
+    check('the bird is grabbed', Game.dragging && Game.bird.mode === 'drag',
+          'dragging=' + Game.dragging + ' mode=' + (Game.bird && Game.bird.mode));
+    for (let i = 0; i < 40; i++) Game.step();     // 40 frames: past the quiet threshold
+    check('holding the aim spends no bird', Game.birdsLeft === birdsBefore,
+          'birdsLeft ' + birdsBefore + ' -> ' + Game.birdsLeft);
+    check('and the held bird is still held', Game.bird === held && Game.bird.mode === 'drag',
+          'mode ' + (Game.bird && Game.bird.mode));
+    // Pull back, then let go: releasing without a pull is a deliberate no-op.
+    mouseX = SLING.x - 50; mouseY = SLING.y + 30;
+    Game.pointerDrag();
+    check('the pull moved the bird off the sling',
+          Game.dragX < SLING.x - 10, 'dragX ' + Game.dragX);
+    Game.step();
+    check('the held bird body follows the pointer',
+          Math.abs(Game.bird.body.position.x - Game.dragX) < 2 &&
+          Math.abs(Game.bird.body.position.y - Game.dragY) < 2,
+          'body ' + Game.bird.body.position.x.toFixed(1) + ',' +
+                 Game.bird.body.position.y.toFixed(1) + ' drag ' + Game.dragX + ',' + Game.dragY);
+    Game.pointerUp();
+    check('release after a hold still fires', Game.bird.mode === 'fly',
+          'mode ' + Game.bird.mode);
+    Game.loadLevel(1);                            // leave the world tidy
 }
 
 // ---- report -----------------------------------------------------------------

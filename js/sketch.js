@@ -1,19 +1,13 @@
 
-// Retro pass: render the scene at 1/PIXELS scale, then blow it back up with
-// nearest-neighbour so every art pixel becomes a chunky PIXELS x PIXELS block.
-const PIXELS = 4;
-
-// Fixed 16-colour ramp — quantising the frame to it is what sells "pixel art"
-// over "blurry upscale". Colours are [r,g,b].
-const PALETTE = [
-    [ 22,  18,  33], [ 44,  34,  70], [ 86,  64, 124], [140, 116, 178],
-    [ 40,  78, 116], [ 72, 136, 176], [150, 204, 220], [ 44, 104,  58],
-    [ 96, 168,  76], [140, 214,  90], [116,  60,  38], [180, 118,  62],
-    [232, 176, 104], [232,  86,  68], [246, 214, 150], [252, 246, 232]
-];
+// p5 bootstrap: load the art, make the canvas, run the loop. No game rules and
+// no drawing here — that is Game.js and Render.js.
+//
+// The retro pass (4x chunky upscale + 16-colour quantise + CRT scanlines) is
+// gone. Sprites are now authored at the exact size they are drawn, so the game
+// renders 1:1 with no resampling and no per-frame palette pass.
 
 var engine, world;
-var ground;              // the one permanent body; see Game.clearWorld
+var ground;
 var backgroundImg;
 
 function preload() {
@@ -22,13 +16,15 @@ function preload() {
     SPRITES.bird      = loadImage("sprites/bird.png");
     SPRITES.wood1     = loadImage("sprites/wood1.png");
     SPRITES.wood2     = loadImage("sprites/wood2.png");
+    SPRITES.stone     = loadImage("sprites/stone.png");
     SPRITES.enemy     = loadImage("sprites/enemy.png");
     SPRITES.enemy_big = loadImage("sprites/enemy_big.png");
-    SPRITES.stone     = loadImage("sprites/stone.png");
+    SPRITES.sling     = loadImage("sprites/sling.png");
+    SPRITES.ground    = loadImage("sprites/ground.png");
 }
 
-function setup(){
-    var canvas = createCanvas(1200,400);
+function setup() {
+    const canvas = createCanvas(WORLD.w, WORLD.h);
     canvas.parent('stage');
     pixelDensity(1);
     noSmooth();
@@ -36,7 +32,7 @@ function setup(){
     world = engine.world;
 
     // The permanent ground. Everything else is torn down and rebuilt per level.
-    ground = new Ground(600,height,1200,20);
+    ground = new Ground(WORLD.w / 2, WORLD.groundTop + 10, WORLD.w, 20);
     ground.permanent = true;
 
     Game.init();
@@ -44,62 +40,17 @@ function setup(){
     UI.show('title');
 }
 
-// ---- input ------------------------------------------------------------------
-function mousePressed()  { Game.pointerDown(); }
-function mouseDragged()  { Game.pointerDrag(); }
-function mouseReleased() { Game.pointerUp(); }
-function touchStarted()  { followTouch(); Game.pointerDown(); return false; }
-function touchMoved()    { followTouch(); Game.pointerDrag();  return false; }
-function touchEnded()    { followTouch(); Game.pointerUp();   return false; }
-// The sling reads mouseX/mouseY, so a touch has to stand in for the mouse.
-function followTouch() {
-    if (typeof touches !== 'undefined' && touches.length) {
-        mouseX = touches[0].x;
-        mouseY = touches[0].y;
-    }
-}
-
-function draw(){
-    push();
-    scale(1/PIXELS);
-    background(backgroundImg);
+function draw() {
+    Render.background(backgroundImg);
+    Render.ground(SPRITES.ground);
     Game.step();
-    Game.render();
-    pop();
-    retro();
-}
-
-// ponytail: get() + the palette loop cost ~3.5ms of the 16ms frame budget at
-// 300x100x16. If frames ever drop, cut PALETTE to 8 colours, or run retro()
-// on alternate frames — the upscale alone still gives the pixel look.
-function retro(){
-    var small = get(0, 0, width/PIXELS, height/PIXELS);
-    small.loadPixels();
-    for (var i = 0; i < small.pixels.length; i += 4) {
-        var r = small.pixels[i], g = small.pixels[i+1], b = small.pixels[i+2];
-        var best = 0, bestDist = Infinity;
-        for (var p = 0; p < PALETTE.length; p++) {
-            var c = PALETTE[p];
-            var dr = r-c[0], dg = g-c[1], db = b-c[2];
-            // luma-weighted distance: cheap, and keeps perceived brightness
-            var dist = dr*dr*0.3 + dg*dg*0.59 + db*db*0.11;
-            if (dist < bestDist) {
-                bestDist = dist;
-                best = p;
-            }
-        }
-        small.pixels[i]   = PALETTE[best][0];
-        small.pixels[i+1] = PALETTE[best][1];
-        small.pixels[i+2] = PALETTE[best][2];
-    }
-    small.updatePixels();
-    clear();
-    noSmooth();
-    image(small, 0, 0, width, height);
+    Render.frame(Game.shake);
 }
 
 /* ORIGINAL (preserved, not deleted — disabled by comment): stage-2 had a single
-   hardcoded scene with no input, no scoring and no levels. Kept for reference.
+   hardcoded scene with no input, no scoring and no levels, and rendered it
+   through a 4x chunky upscale with a 16-colour quantise pass plus CSS CRT
+   scanlines. Kept for reference.
 
 function setup(){
     var canvas = createCanvas(1200,400);

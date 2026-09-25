@@ -13,7 +13,14 @@ const Bodies = Matter.Bodies;
 const Composite = Matter.Composite;
 const Body = Matter.Body;
 
-const SLING = { x: 165, y: 300, maxPull: 95, power: 0.17 };
+// The play area. Kept as numbers rather than p5's width/height so the rules
+// work in the self-test page, which has no canvas.
+const WORLD = { w: 1200, h: 400, groundTop: 390, killMargin: 90 };
+// power 0.20 is measured, not guessed: with the bird's drag off, a 95px pull at
+// 30deg lands at x=1116, which covers every target the generator places
+// (max x=1070). At 0.17 it only reached 809, so the right-hand tower of every
+// late level was literally unhittable.
+const SLING = { x: 165, y: 300, maxPull: 95, power: 0.20 };
 const STEP = 1000 / 60;
 const DAMAGE = { minImpact: 5, scale: 26 };
 const ARMOUR = { pig: 1, wood: 0.8, stone: 0.55 };
@@ -155,15 +162,6 @@ const Game = {
         this.shotFrames = 0;
         this.showAim = false;
     },
-    // Takes the key from the event, not p5's global: the DOM listener runs
-    // before p5's, so p5's `key` is still the previous keystroke.
-    keyPressed(k) {
-        if (this.state !== 'play') return false;
-        if (k === ' ' && this.bird) { this.bird.boost(); return true; }
-        if (k === 'r' || k === 'R') { this.loadLevel(this.level); return true; }
-        return false;
-    },
-
     // ---- damage ------------------------------------------------------------
     onCollision(e) {
         for (const pair of e.pairs) {
@@ -220,9 +218,31 @@ const Game = {
         }
     },
 
+    // Anything that leaves the play area is gone. A pig knocked off the right
+    // edge used to fall forever: never destroyed, so pigsLeft never hit 0 and
+    // the level could not be won no matter how well it was shot.
+    cullOutOfBounds() {
+        for (const e of this.entities) {
+            if (!e.alive || e.permanent) continue;
+            const p = e.body.position;
+            if (p.y > WORLD.h + WORLD.killMargin ||
+                p.x < -WORLD.killMargin || p.x > WORLD.w + WORLD.killMargin) {
+                e.destroy();
+            }
+        }
+    },
+
     // ---- per-frame ---------------------------------------------------------
     step() {
+        // A held bird is parked where the pointer is. This used to happen inside
+        // Bird.display(), so the body only moved at draw time and every collision
+        // test that frame ran against the stale position on the sling.
+        if (this.dragging && this.bird) {
+            Matter.Body.setPosition(this.bird.body, { x: this.dragX, y: this.dragY });
+            Matter.Body.setVelocity(this.bird.body, { x: 0, y: 0 });
+        }
         Engine.update(engine, STEP);
+        this.cullOutOfBounds();
         this.shotFrames++;
         if (this.shake > 0) this.shake *= 0.86;
         for (let i = this.particles.length - 1; i >= 0; i--) {
@@ -250,16 +270,21 @@ const Game = {
         }
         if (moving) { this.quietFrames = 0; return false; }
         this.quietFrames++;
-        // 30 quiet frames, or an 8s hard cap so a rolling log can't stall the level.
-        return this.quietFrames > 30 || this.shotFrames > 480;
+        // 30 quiet frames, or a 15s cap so a log rolling downhill can't stall
+        // the level. 8s was short enough to cut off long shots mid-flight.
+        return this.quietFrames > 30 || this.shotFrames > 900;
     },
 
     resolveShot() {
-        if (this.pigsLeft <= 0) return this.win();
-        if (this.birdsLeft <= 0) return this.lose();
-        if (this.bird && this.bird.mode !== 'sling') { this.nextBird(); }
         this.quietFrames = 0;
         this.shotFrames = 0;
+        if (this.pigsLeft <= 0) return this.win();
+        if (this.birdsLeft <= 0) return this.lose();
+        // Nothing has been shot yet: the bird is on the sling or held on the
+        // drag. Without this guard the world reads as "asleep" every frame while
+        // the player is still aiming, and a phantom bird spawns mid-aim.
+        if (!this.bird || this.bird.mode === 'sling' || this.bird.mode === 'drag') return;
+        this.nextBird();
     },
 
     win() {
@@ -279,6 +304,12 @@ const Game = {
         this.state = 'lost';
         UI.showEnd(this.state);
     },
+    // The "next level" button, as a rule rather than a click handler: advancing
+    // is game state, so it belongs here where the self-test can reach it.
+    winNext() {
+        this.loadLevel(this.level + 1);
+        UI.show('play');
+    },
     confetti() {
         const cols = [[232, 86, 68], [246, 214, 150], [140, 214, 90], [150, 204, 220]];
         for (let i = 0; i < 10; i++) {
@@ -287,61 +318,4 @@ const Game = {
         }
     },
 
-    // ---- rendering ---------------------------------------------------------
-    render() {
-        const sh = this.shake;
-        if (sh > 0.2) {
-            push();
-            translate((Math.random() - 0.5) * sh, (Math.random() - 0.5) * sh);
-        }
-        this.drawSling();
-        if (this.state === 'play' || this.state === 'won' || this.state === 'lost') {
-            for (const e of this.entities) e.display();
-        }
-        this.drawTrajectory();
-        this.drawParticles();
-        if (sh > 0.2) pop();
-    },
-
-    drawSling() {
-        // Two forks, drawn as chunky pixel planks to match the art.
-        noStroke();
-        fill(116, 60, 38);
-        rect(SLING.x - 26, SLING.y + 6, 12, 96);
-        rect(SLING.x + 18, SLING.y + 6, 12, 96);
-        fill(180, 118, 62);
-        rect(SLING.x - 30, SLING.y - 4, 20, 14);
-        rect(SLING.x + 14, SLING.y - 4, 20, 14);
-        if (this.bird && this.bird.alive) {
-            stroke(70, 40, 30);
-            strokeWeight(4);
-            const p = this.bird.body.position;
-            line(SLING.x - 20, SLING.y, p.x, p.y);
-            line(SLING.x + 24, SLING.y, p.x, p.y);
-            noStroke();
-        }
-    },
-
-    drawTrajectory() {
-        if (!this.showAim || !this.bird) return;
-        const vx = (SLING.x - this.dragX) * SLING.power;
-        const vy = (SLING.y - this.dragY) * SLING.power;
-        const x0 = SLING.x, y0 = SLING.y;
-        noStroke();
-        for (let i = 3; i < 90; i++) {
-            const x = x0 + vx * i;
-            const y = y0 + vy * i + 0.5 * this.gravityPerStep * i * i;
-            if (y > this.spec.ground) break;
-            fill(252, 246, 232, 220 - i * 2);
-            rect(x - 2, y - 2, 4, 4);
-        }
-    },
-
-    drawParticles() {
-        noStroke();
-        for (const p of this.particles) {
-            fill(p.colour[0], p.colour[1], p.colour[2], Math.min(255, p.life * 6));
-            rect(p.x - 2, p.y - 2, 4, 4);
-        }
-    }
 };

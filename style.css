@@ -30,7 +30,19 @@ h1 span {
   color: #e85644;
 }
 
-/* Hard-edged upscale: keeps the retro blocks from being re-blurred by CSS. */
+/* The canvas renders 1:1 now, so this is just a clean frame around it. */
+canvas {
+  display: block;
+  border-radius: 6px;
+  border: 3px solid #2a1c3a;
+  box-shadow: 0 10px 30px #00000066;
+}
+
+/* ORIGINAL (preserved, not deleted — disabled by comment): the retro pass put a
+   CRT overlay over the whole page and a hard-edged 4x upscale around the canvas.
+   With the palette quantise and the chunky scale gone, both only muddied the
+   art, so they are off.
+
 canvas {
   display: block;
   image-rendering: pixelated;
@@ -38,7 +50,6 @@ canvas {
   box-shadow: 0 0 0 2px #5c4a7a, 0 12px 40px #000000aa;
 }
 
-/* CRT scanlines, one per 4px pixel block. Pure CSS — no per-frame cost. */
 body::after {
   content: "";
   position: fixed;
@@ -52,6 +63,7 @@ body::after {
     rgba(0, 0, 0, 0.28) 4px
   );
 }
+*/
 
 /* ---------- game shell ---------- */
 .hud {

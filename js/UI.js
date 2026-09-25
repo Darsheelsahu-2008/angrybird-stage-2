@@ -70,6 +70,7 @@ const UI = {
             Game.loadLevel(+b.dataset.lvl);
             this.show('play');
         });
+
     },
 
     sync() {
@@ -95,7 +96,7 @@ const UI = {
 
 // ---- wiring -----------------------------------------------------------------
 function uiAction(act) {
-    if (act === 'next') { Game.loadLevel(Game.level + 1); UI.show('play'); }
+    if (act === 'next') { Game.winNext(); }
     else if (act === 'retry') { Game.loadLevel(Game.level); UI.show('play'); }
     else if (act === 'select') { UI.sync(); UI.show('select'); }
     else if (act === 'play') { Game.loadLevel(Game.progress.unlocked); UI.show('play'); }
@@ -116,8 +117,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const b = e.target.closest('button[data-act]');
         if (b) uiAction(b.dataset.act);
     });
+});
+
+/* ORIGINAL (preserved, not deleted — disabled by comment): the keyboard lived
+   here, next to the button wiring. It also fired while a menu was open, so
+   Escape from the win screen and R from level select both went through the
+   play-only path. Now in Input.js with the rest of the input.
+
     document.addEventListener('keydown', e => {
         if (Game.keyPressed(e.key)) e.preventDefault();
         if (e.key === 'Escape') { UI.show('select'); }
     });
-});
+*/

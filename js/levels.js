@@ -38,8 +38,10 @@ function levelSpec(n) {
 
     // Tutorial ramp: level 1 is a single wood crate with one pig, no stone.
     var towers = 1 + (t > 0.10 ? 1 : 0) + (t > 0.55 ? 1 : 0);
-    var spacing = 205;
-    var startX = 520 + Math.floor(rnd() * 40);
+    // The furthest thing the sling can reach is x=1116 (see SLING.power), and
+    // the blocks sit tx+70, so the last tower has to start at 1040 or less.
+    var spacing = 195;
+    var startX = 520 + Math.floor(rnd() * 20);
 
     for (var i = 0; i < towers; i++) {
         var tx = startX + i * spacing;
